@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 import time
 import streamlit as st
+import sqlite3
 
 from config.settings import DEFAULT_QUESTIONS_PER_TEST
 from config.constants import CATEGORIES, DIFFICULTIES
