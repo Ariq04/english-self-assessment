@@ -1,320 +1,203 @@
-# 🎓 English Self-Assessment Web Platform
+# 🎓 English Self-Assessment Quiz Platform
 
-A production-ready, interactive web application built with Streamlit and SQLite for English language self-assessment. Designed for students, test-takers, and educators to evaluate and improve English proficiency across **Grammar**, **Reading Comprehension**, and **Listening Comprehension**.
+[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![Framework](https://img.shields.io/badge/framework-Streamlit%201.35+-red.svg)](https://streamlit.io/)
+[![Database](https://img.shields.io/badge/database-SQLite%20(WAL%20Mode)-lightgrey.svg)](https://www.sqlite.org/)
+[![Tests](https://img.shields.io/badge/tests-132%20passed-success.svg)](https://docs.pytest.org/)
+[![Deployment](https://img.shields.io/badge/deploy-Railway-purple.svg)](https://railway.app/)
 
----
-
-## 🌟 Key Capabilities
-
-- **Three Dedicated Assessment Pillars**:
-  - **Grammar Mastery**: Dynamic question selection, zero duplicates, shuffled distractors, and immediate explanations.
-  - **Reading Comprehension**: Passage analysis, multi-question context linking, and question-type targeting.
-  - **Listening Comprehension**: Natural audio dialogue/lecture playback, transcripts, and clue retention.
-- **Rule-Based Pedagogical Difficulty Classification**: Easy, Medium, and Hard tiers evaluated across linguistic criteria.
-- **Admin Management Portal**:
-  - Role-based authorization (`superadmin` and `admin`) with `bcrypt` password hashing.
-  - Question CRUD, bulk status toggles, and archival.
-  - DOCX (`.docx`) and Excel (`.xlsx`) question bank import/export pipelines with validation preview.
-  - Question-level performance analytics (attempts, accuracy, and difficulty calibration alerts).
-- **Personalized History & Self-Assessment Summary**:
-  - Longitudinal performance tracking and category breakdowns.
-  - Trend evaluation and clear, descriptive feedback with non-certification disclosures.
+Platform asesmen mandiri Bahasa Inggris berbasis web yang interaktif, modular, dan didukung analisis performa butir soal. Dirancang untuk mengevaluasi kompetensi peserta secara terstruktur pada tiga pilar utama: **Grammar**, **Reading Comprehension**, dan **Listening Comprehension**.
 
 ---
 
-## 📁 Project Directory Structure
+## 🌟 Fitur Utama Aplikasi
+
+### 1. Alur Asesmen Peserta (*Participant Workflow*)
+- **Validasi Identitas & Session**: Registrasi peserta dengan validasi format email (RFC/DNS-compliant) dan fitur *lookup* riwayat otomatis bagi peserta terdaftar.
+- **Dua Moda Asesmen**:
+  - **Standard Difficulty Mode**: Pemilihan bebas tingkat kesulitan (*Easy*, *Medium*, *Hard*) per kategori.
+  - **Skill Progression Mode**: Pendekatan kurikulum berjenjang berbasis skill TOEFL (Skill 1 s/d N) dengan ambang kelulusan (*passing score*) serta **Final Exam (Comprehensive Sampling)**.
+- **Quiz Engine Interaktif**:
+  - Algoritma pemilihan soal acak dengan jaminan tanpa pengulangan (*zero-repetition guarantee*) dalam satu sesi.
+  - Pengacakan posisi opsi jawaban (*distractor shuffle*) dengan umpan balik visual dan pembahasan instan (*instant explanation*).
+  - Modul Reading terintegrasi teks bacaan majemuk (*multi-question passages*).
+  - Modul Listening dengan pemutar audio HTML5 dan transkrip percakapan.
+- **Riwayat & Evaluasi Personal**: Rekapitulasi skor longitudinal, tren perkembangan akurasi, dan tinjauan detail setiap jawaban peserta.
+
+### 2. Panel Administrasi & Analisis Data
+- **Keamanan Kredensial**: Autentikasi administrator menggunakan salted `bcrypt` (12 rounds) dengan proteksi rute (`require_admin_auth`).
+- **Dashboard Eksekutif**: Metrik KPI ringkasan platform (Total Users, Attempts, Questions, Active Questions) dengan visualisasi interaktif Plotly.
+- **Manajemen Bank Soal (CRUD)**: Pengelolaan penuh butir soal, pengaturan status (*Draft*, *Active*, *Inactive*, *Archived*), serta aksi massal (*bulk toggles* & *bulk delete*).
+- **Pipeline Impor Soal (DOCX & Excel)**:
+  - Ekstraksi otomatis butir soal dari dokumen Word (`.docx`) dan spreadsheet (`.xlsx`).
+  - Validasi keamanan arsip: verifikasi *magic-bytes* ZIP, pembatasan ukuran file, dan mitigasi *decompression bomb*.
+  - Ekspor seluruh bank soal ke format Excel (`.xlsx`).
+- **Analitik Psikometrik Butir Soal**:
+  - Evaluasi akurasi empiris peserta per butir soal vs tingkat kesulitan teoretis.
+  - Deteksi anomali butir soal (*needs review flag*) untuk kalibrasi kualitas bank soal.
+- **Pengaturan Kredensial Mandiri**: Fitur pembaruan username dan kata sandi admin secara aman via portal settings.
+
+---
+
+## 🏗️ Arsitektur Perangkat Lunak
+
+Aplikasi ini menerapkan **Layered Architecture (Separation of Concerns)** untuk memisahkan antarmuka pengguna, logika bisnis, dan akses data:
 
 ```text
-english_self_assessment/
+├── Presentation Layer   : Streamlit multi-page routing dinamis (st.navigation)
+├── Business Logic Layer : Services terisolasi (Scoring, Selector, Analytics, Auth)
+├── Data Access Layer    : Repository Pattern (100% Parameterized SQL Queries)
+└── Storage Layer        : SQLite terindeks dengan WAL (Write-Ahead Logging) Mode
+```
+
+### Struktur Direktori Proyek
+
+```text
+english-self-assessment/
 ├── .streamlit/
-│   ├── config.toml               # Streamlit server, browser & theme configuration
-│   └── secrets.toml.example      # Template for environment secrets
-├── app.py                        # Landing page entry point
-├── config/
-│   └── settings.py               # Central paths, directories & runtime settings
-├── database/
-│   ├── db.py                     # SQLite connection manager & idempotent init
-│   ├── schema.py                 # DDL tables, indexes, constraints & seeds
-│   ├── models.py                 # Dataclass entities (User, Admin, Question, etc.)
-│   └── queries.py                # Parameterized SQL query repository
-├── services/
-│   ├── user_service.py           # Participant registration & session management
-│   ├── quiz_engine.py            # Quiz session state lifecycle & execution
-│   ├── question_selector.py      # Dynamic randomization & repetition control
-│   ├── scoring_service.py        # Real-time scoring & accuracy calculations
-│   ├── history_service.py        # History aggregation & self-assessment summary
-│   ├── admin_service.py          # Admin authentication, bcrypt hashing & roles
-│   ├── admin_dashboard_service.py# Dashboard statistics & activity ledgers
-│   ├── question_service.py       # Question CRUD & payload validation
-│   ├── import_service.py         # Batch question import executor
-│   └── analytics_service.py      # Question performance analytics
-├── utils/
-│   ├── admin_init.py             # Safe initial Superadmin provisioning CLI
-│   ├── backup_db.py              # Hot atomic SQLite backup utility
-│   ├── difficulty.py             # Rule-based difficulty classifier
-│   ├── docx_parser.py            # Resilient Word (.docx) question parser
-│   ├── excel_parser.py           # Excel (.xlsx) importer & exporter
-│   ├── audio.py                  # Audio player & safe playback handlers
-│   └── security.py               # Filename sanitizer, file validator & security checks
-├── pages/
-│   ├── 02_Identity.py            # Participant registration
-│   ├── 03_Category_Selection.py  # Category picker
-│   ├── 04_Level_Selection.py     # Difficulty level picker
-│   ├── 05_Quiz.py                # Active quiz interface with instant feedback
-│   ├── 06_Results.py             # Quiz results & performance breakdown
-│   ├── 07_History.py             # Self-assessment summary & historical trends
-│   ├── 90_Admin_Login.py         # Administrator portal login
-│   └── 91_Admin_Dashboard.py     # Admin dashboard & management suite
-├── data/
-│   ├── english_assessment.db     # SQLite database (auto-created on startup)
-│   └── backups/                  # Database backup storage directory
-├── audio/
-│   ├── listening/                # Listening comprehension audio tracks (.mp3)
-│   └── feedback/                 # Sound effects for answer evaluation (.mp3)
-├── uploads/                      # Temporary storage for imported DOCX / Excel files
-├── requirements.txt              # Production dependency specifications
-└── README.md                     # Deployment & operations documentation
+│   ├── config.toml                     # Konfigurasi server, tema & UI Streamlit
+│   └── secrets.toml.example            # Template rahasia lingkungan (bukan file rahasia asli)
+├── app.py                              # Entry point aplikasi & router navigasi dinamis
+├── Procfile                            # Start command process web untuk Railway
+├── railway.json                        # Konfigurasi build Nixpacks & restart policy Railway
+├── runtime.txt                         # Pinning versi runtime (python-3.11.9)
+├── requirements.txt                    # Dependensi produksi minimal & terverifikasi
+├── README.md                           # Dokumentasi komprehensif & panduan arsitektur
+├── PRD.md                              # Product Requirement Document
+│
+├── config/                             # Konfigurasi terpusat
+│   ├── constants.py                    # Enum kategori, difficulty, CEFR level
+│   └── settings.py                     # Resolusi path dinamis (DATA_DIR, DATABASE_PATH)
+│
+├── database/                           # Layer persistensi data
+│   ├── db.py                           # Koneksi SQLite, WAL mode & DDL initialization
+│   ├── schema.py                       # DDL 13 tabel, 11 indeks, foreign keys, constraints
+│   ├── models.py                       # Python Dataclass entities (User, Admin, Question, etc.)
+│   ├── queries.py                      # 100% Parameterized SQL query repository
+│   └── seed_data.py                    # Seeding otomatis bank soal awal
+│
+├── services/                           # Pure Business Logic Layer
+│   ├── user_service.py                 # Registrasi & manajemen session peserta
+│   ├── quiz_engine.py                  # State machine kuis, tracking waktu & attempt
+│   ├── question_selector.py            # Algoritma seleksi soal acak & anti-repetisi
+│   ├── scoring_service.py              # Kalkulasi skor persentase & pemetaan kecakapan
+│   ├── history_service.py              # Agregasi riwayat & grafik perkembangan peserta
+│   ├── admin_service.py                # Autentikasi bcrypt admin & proteksi rute
+│   ├── admin_dashboard_service.py      # Agregasi metrik KPI & visualisasi Plotly
+│   ├── question_service.py             # Validasi payload & CRUD bank soal
+│   ├── import_service.py               # Batch executor impor Word & Excel
+│   └── analytics_service.py            # Analitik performa & akurasi empiris butir soal
+│
+├── components/                         # UI Reusable Components
+│   ├── navigation.py                   # Custom header bar & sidebar admin
+│   └── ui_styles.py                    # Injeksi CSS global & card styling
+│
+├── pages/                              # Presentation Layer (14 Halaman Terdaftar)
+│   ├── 01_Home.py                      # Landing page & pengenalan platform
+│   ├── 02_Identity.py                  # Registrasi identitas & verifikasi peserta
+│   ├── 03_Test_Selection.py            # Seleksi kategori, level, & TOEFL skill progression
+│   ├── 04_Quiz.py                      # Active quiz engine interface & instant feedback
+│   ├── 05_Result.py                    # Skor, breakdown performa & kunci pembahasan
+│   ├── 06_History.py                   # Riwayat longitudinal & grafik tren pengerjaan
+│   ├── 90_Admin_Login.py               # Portal autentikasi administrator
+│   ├── 91_Admin_Dashboard.py           # Dashboard metrik platform & grafik Plotly
+│   ├── 92_Admin_Users.py               # Manajemen direktori peserta
+│   ├── 93_Admin_Question_Bank.py       # CRUD & bulk actions bank soal
+│   ├── 94_Admin_Import.py              # Pipeline impor soal DOCX & Excel
+│   ├── 95_Admin_Analytics.py           # Analitik performa & kalibrasi kesulitan soal
+│   ├── 96_Admin_Results.py             # Ledger log pengerjaan seluruh peserta
+│   └── 97_Admin_Settings.py            # Manajemen kredensial & kata sandi admin
+│
+├── utils/                              # Standalone Utilities & Parsers
+│   ├── admin_init.py                   # CLI provisioning akun superadmin aman
+│   ├── audio.py                        # Audio player & safe playback handlers
+│   ├── backup_db.py                    # Hot atomic SQLite backup utility
+│   ├── difficulty.py                   # Rule-based difficulty classifier
+│   ├── docx_parser.py                  # Resilient Word (.docx) document parser
+│   ├── excel_parser.py                 # Excel (.xlsx) importer & exporter
+│   ├── security.py                     # Sanitasi filename, magic-bytes, mitigasi zip-bomb
+│   └── validators.py                   # Validasi email (DNS/RFC) & nama
+│
+├── data/                               # Direktori data lokal & template
+│   ├── contoh_soal_berbasis_skill.xlsx # Contoh soal referensi
+│   └── template_soal_berbasis_skill.xlsx # Template impor bank soal
+│
+├── audio/                              # Direktori media audio
+│   ├── feedback/                       # Sound effects evaluasi jawaban
+│   └── listening/                      # Audio prompts listening comprehension
+│
+└── tests/                              # 20 File Automated Test Suites (132 Tests)
 ```
 
 ---
 
-## 🚀 Deployment & Setup Guide
+## 💾 Desain Basis Data & Konkurensi
 
-### 1. Local Setup
-Ensure your environment meets the minimum prerequisites:
-- **Operating System**: Linux (Ubuntu 22.04+ recommended), macOS, or Windows 10/11.
-- **Python**: Python 3.10, 3.11, 3.12, or 3.13.
-- **Git**: For version control.
+- **Relational Schema**: 13 tabel terstruktur, 11 indeks performa, penegakan integritas referensial (`PRAGMA foreign_keys = ON;` dengan `CASCADE` dan `RESTRICT`).
+- **High Concurrency Tuning**:
+  - `PRAGMA journal_mode = WAL;` (Write-Ahead Logging: pembaca tidak memblokir penulis).
+  - `PRAGMA synchronous = NORMAL;` (Efisiensi I/O disk).
+  - `timeout = 30.0` detik pada koneksi untuk mencegah isu *database locked*.
 
-Clone or download the repository:
+---
+
+## 🚀 Panduan Menjalankan Aplikasi Secara Lokal
+
+### 1. Kebutuhan Sistem
+- Python 3.10, 3.11, atau 3.12
+- Git
+
+### 2. Instalasi Lokal
 ```bash
-git clone <repository-url> english_self_assessment
-cd english_self_assessment
-```
+# Clone repository
+git clone https://github.com/Ariq04/english-self-assessment.git
+cd english-self-assessment
 
-### 2. Virtual Environment
-Create an isolated virtual environment to prevent package version conflicts:
+# Buat virtual environment
+python -m venv .venv
 
-**Using standard `venv`:**
-```bash
-python3 -m venv .venv
+# Aktivasi environment (Windows PowerShell)
+.venv\Scripts\Activate.ps1
+# Aktivasi environment (Linux / macOS)
 source .venv/bin/activate
-# On Windows (cmd.exe): .venv\Scripts\activate.bat
-# On Windows (PowerShell): .venv\Scripts\Activate.ps1
-```
 
-**Using `uv` (optional, ultra-fast):**
-```bash
-uv venv
-source .venv/bin/activate
-```
-
-### 3. Dependency Installation
-Install all required production dependencies:
-```bash
+# Install dependensi
 pip install -r requirements.txt
 ```
 
-Verify that the core libraries install without warnings:
-```bash
-python -c "import streamlit, docx, openpyxl, pandas, plotly, bcrypt, email_validator, PIL; print('All dependencies successfully imported!')"
-```
-
-### 4. Database Initialization
-The SQLite database schema is **fully idempotent**. It automatically initializes when the application boots.
-
-To manually trigger or verify database schema initialization prior to starting the web server, run:
-```bash
-python -c "from database.db import init_db; init_db(); print('Database schema and seed categories initialized successfully.')"
-```
-The database will be created at `data/english_assessment.db` with secure file permissions (`0600` on POSIX systems).
-
-### 5. Administrator Account Creation
-Administrative accounts use salted `bcrypt` password hashing. Plaintext passwords are never stored or logged.
-
-#### Option A: Interactive CLI (Recommended for initial setup)
-Run the built-in admin initialization script:
+### 3. Inisialisasi Akun Administrator
+Gunakan utilitas CLI bawaan untuk membuat akun administrator awal secara aman:
 ```bash
 python utils/admin_init.py
 ```
-Follow the prompts to enter:
-- **Superadmin Username** (minimum 3 characters)
-- **Superadmin Password** (minimum 8 characters)
 
-#### Option B: Environment Variable Provisioning (Ideal for CI/CD or Docker)
-```bash
-ADMIN_INIT_USER="admin" ADMIN_INIT_PASS="YourSecurePassword123!" python utils/admin_init.py
-```
-*Note: If an administrator already exists in the database, `admin_init.py` will safely refuse to overwrite existing credentials.*
-
-### 6. Application Startup
-Start the Streamlit application server:
+### 4. Menjalankan Server
 ```bash
 streamlit run app.py
 ```
-By default, the application runs at `http://localhost:8501`.
-
-To run on a specific network interface and port (e.g. for a dedicated server or VPS):
-```bash
-streamlit run app.py --server.port 8501 --server.address 0.0.0.0
-```
+Akses antarmuka aplikasi melalui peramban di `http://localhost:8501`.
 
 ---
 
-## 🌐 Public Deployment Considerations
+## 🧪 Pengujian Otomatis (*Automated Testing*)
 
-### A. Streamlit Community Cloud
-1. Push your repository to GitHub (ensure `.gitignore` excludes `data/*.db` and `.streamlit/secrets.toml`).
-2. Log into [Streamlit Community Cloud](https://share.streamlit.io/) and create a new app pointing to `app.py`.
-3. Under **App settings → Secrets**, paste any desired environment secrets based on `.streamlit/secrets.toml.example`.
-4. *Important note*: Streamlit Community Cloud instances have ephemeral local disk storage. Any changes to `data/english_assessment.db` will reset when the app sleeps or reboots. For persistent public deployments with user history and admin data, use a VPS, VM, or Docker container with persistent volumes (see below).
-
-### B. Linux VPS / Virtual Machine (Ubuntu / Debian)
-For production deployments, run the application as a background `systemd` service behind an Nginx reverse proxy with HTTPS.
-
-#### 1. Systemd Service File
-Create `/etc/systemd/system/english-assessment.service`:
-```ini
-[Unit]
-Description=English Self-Assessment Streamlit Application
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/english_self_assessment
-Environment="PATH=/var/www/english_self_assessment/.venv/bin"
-ExecStart=/var/www/english_self_assessment/.venv/bin/streamlit run app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-Enable and start the service:
+Proyek ini diverifikasi menggunakan rangkaian unit & integration tests menyeluruh:
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable english-assessment
-sudo systemctl start english-assessment
+python -m pytest -v
 ```
-
-#### 2. Nginx Reverse Proxy with WebSocket Support
-Streamlit requires WebSocket upgrade support. Create `/etc/nginx/sites-available/english-assessment`:
-```nginx
-server {
-    listen 80;
-    server_name assessment.yourdomain.edu;
-
-    client_max_body_size 25M;
-
-    location / {
-        proxy_pass http://127.0.0.1:8501;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 86400;
-    }
-}
+**Hasil Verifikasi Aktual:**
+```text
+============================ 132 passed in 20.50s =============================
 ```
-Enable the site and obtain a free SSL certificate via Certbot:
-```bash
-sudo ln -s /etc/nginx/sites-available/english-assessment /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-sudo certbot --nginx -d assessment.yourdomain.edu
-```
-*HTTPS is strongly recommended so that browser audio playback and student session data remain encrypted in transit.*
-
-### C. Docker Deployment
-You can deploy using Docker with a persistent storage mount:
-```bash
-# Build Docker image
-docker build -t english-self-assessment .
-
-# Run container with persistent data and audio storage
-docker run -d \
-  --name english-assessment-app \
-  -p 8501:8501 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/audio:/app/audio \
-  --restart unless-stopped \
-  english-self-assessment
-```
+Mencakup 20 modul pengujian: autentikasi admin, parsing dokumen DOCX/Excel, algoritma pengacakan soal tanpa repetisi, kalkulasi skor, audio handling, integritas database, dan pengerasan keamanan (*security hardening*).
 
 ---
 
-## 💾 SQLite Database Backup & Recovery Procedure
+## 🌐 Catatan Deployment Produksi (Railway)
 
-SQLite operates as a single, file-based database engine. To prevent file corruption during backups while users are actively taking quizzes, **always use atomic online backups**.
-
-### 1. Automated Online Backup Utility
-This project includes a dedicated atomic backup utility ([`utils/backup_db.py`](file:///Users/mertimegawaty/Bank%20Soal/english_self_assessment/utils/backup_db.py)) that utilizes the official SQLite Online Backup API:
-```bash
-python utils/backup_db.py
-```
-This command:
-1. Safely locks pages incrementally without interrupting active users.
-2. Generates a timestamped snapshot in `data/backups/english_assessment_backup_YYYYMMDD_HHMMSS.db`.
-3. Verifies file integrity using `PRAGMA quick_check;`.
-4. Sets strict file permissions (`0600`).
-
-To specify a custom backup directory (e.g. an external mounted volume or offsite backup folder):
-```bash
-python utils/backup_db.py --dest /mnt/secure_backups/english_assessment/
-```
-
-### 2. Scheduled Cron Job (Automated Daily Backups)
-To schedule automatic daily backups at 02:00 AM on Linux/macOS:
-```bash
-crontab -e
-```
-Add the following entry:
-```cron
-0 2 * * * cd /var/www/english_self_assessment && .venv/bin/python utils/backup_db.py >> /var/log/db_backup.log 2>&1
-```
-
-### 3. Database Restoration Procedure
-In the event of hardware failure or accidental data deletion, restore from the latest verified backup:
-
-1. Stop the application service:
-   ```bash
-   sudo systemctl stop english-assessment
-   ```
-2. Archive the current database state (if any):
-   ```bash
-   mv data/english_assessment.db data/english_assessment_damaged.db.bak
-   ```
-3. Copy the desired backup snapshot to `data/english_assessment.db`:
-   ```bash
-   cp data/backups/english_assessment_backup_20260928_120000.db data/english_assessment.db
-   chmod 600 data/english_assessment.db
-   ```
-4. Restart the application service:
-   ```bash
-   sudo systemctl start english-assessment
-   ```
-5. Confirm application health by visiting the landing page and admin dashboard.
-
----
-
-## 🔒 Security Best Practices
-
-- **Never Commit Secrets**: Keep `.streamlit/secrets.toml` and `.env` in `.gitignore`.
-- **Audio Path Traversal Guard**: All audio references are constrained to the safe `audio/` root via `utils/security.py:is_safe_audio_path()`.
-- **Upload Validation**: Uploaded Word (.docx) and Excel (.xlsx) files are validated for MIME type, file size limits (max 25MB), and valid zip package structure before processing.
-- **Admin Authentication**: Admin accounts require passwords with minimum length constraints and utilize salted `bcrypt` key derivation.
-- **SQL Parameterization**: All SQL operations use parameter substitution (`?`) to prevent SQL injection vulnerabilities.
-
----
-
-## 🧪 Testing & Verification
-
-Run the comprehensive unit and integration test suite:
-```bash
-python -m unittest discover tests -v
-```
-All 123 tests covering participant workflows, category engines, database transactions, foreign key constraints, and edge cases will execute.
+Aplikasi telah dikonfigurasi untuk cloud deployment di **Railway**:
+- **Build Engine**: `railway.json` mengonfigurasi builder `NIXPACKS` dengan versi Python `3.11.9` (`runtime.txt`).
+- **Process Manager**: `Procfile` menjalankan Streamlit dengan pengikatan port dinamis `${PORT:-8501}`.
+- **Catatan Penyimpanan Cloud**:
+  - Secara default, container PaaS bersifat *ephemeral*. Untuk mempertahankan database dan riwayat ujian lintas *redeploy*, Railway memerlukan pemasangan **Persistent Volume** yang diarahkan ke `/app/data` (dikonfigurasi via variabel `DATA_DIR=/app/data`).
+  - File audio statis disertakan dalam direktori aplikasi (`audio/`).

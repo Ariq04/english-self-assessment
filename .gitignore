@@ -33,7 +33,6 @@ ENV/
 *.sqlite3
 data/*.db
 data/backups/*.db
-!data/english_assessment.db
 !data/.gitkeep
 !data/backups/.gitkeep
 
